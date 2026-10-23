@@ -1,0 +1,115 @@
+# yaml-language-server: $schema=https://api.app-prg1.zerops.io/api/rest/public/settings/zerops-yaml-json-schema.json
+
+zerops:
+  # ── nextjs ───────────────────────────────────────────────────────────────────
+  # Next.js 16 standalone bundle served by Node.js 24 on port 3000.
+  # Content is fetched at request time from the Directus REST API —
+  # this service has no database of its own.
+  #
+  # The setup name "nextjs" matches the service hostname in import.yaml so
+  # Zerops resolves this block automatically — no zeropsSetup field needed.
+  - setup: nextjs
+
+    # ── Build ───────────────────────────────────────────────────────────────
+    build:
+      base: ubuntu/nodejs@24
+
+      buildCommands:
+        # Reproducible install — npm ci reads exactly what is in package-lock.json.
+        # devDependencies are included because they are required by `next build`
+        # (TypeScript compiler, PostCSS, Tailwind). The standalone output in
+        # .next/standalone only ships the runtime subset, so devDeps never reach
+        # the deployed artifact.
+        - npm ci
+        # Build the Next.js standalone bundle.
+        - npm run build
+        # Standalone output omits static assets; copy them into the bundle
+        # so the deploy directory is fully self-contained.
+        - cp -r .next/static  .next/standalone/.next/static
+        - cp -r public        .next/standalone/public
+
+      # Deploy only the self-contained standalone directory.
+      # server.js ends up at the root so "node server.js" works directly.
+      deployFiles:
+        - .next/standalone/~
+
+      # ~/.npm caches downloaded tarballs between builds.
+
+      cache:
+        - ~/.npm
+
+    # ── Deploy ──────────────────────────────────────────────────────────────
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 3000
+          path: /
+
+    # ── Runtime ─────────────────────────────────────────────────────────────
+    run:
+      base: ubuntu/nodejs@24
+
+      ports:
+        - port: 3000
+          httpSupport: true
+
+      envVariables:
+        NODE_ENV: production
+        # Next.js standalone reads PORT from the environment.
+        PORT: "3000"
+        # Disable anonymous telemetry collection at runtime.
+        # See: https://nextjs.org/telemetry
+        NEXT_TELEMETRY_DISABLED: "1"
+
+        # ── Directus connection (directus-next recipe vault) ────────────────
+        DIRECTUS_URL: ${API_URL}
+        DIRECTUS_TOKEN: ${ADMIN_TOKEN}
+
+      # HOSTNAME is set inline to avoid conflicting with the Zerops system
+      # variable of the same name. Next.js standalone reads HOSTNAME from
+      # process.env to bind the server; 0.0.0.0 accepts connections on all
+      # interfaces, which is required inside a container.
+      start: HOSTNAME=0.0.0.0 node server.js
+
+      # Zerops probes this endpoint on a fixed cadence.
+      # If it stops responding the container is replaced and traffic is rerouted.
+      healthCheck:
+        httpGet:
+          port: 3000
+          path: /
+
+  # ── dev ────────────────────────────────────────────────────────────────────
+  # Agent/local `frontenddev` — same bundle as `nextjs`, DEV API URL from vault.
+  - setup: dev
+    build:
+      base: ubuntu/nodejs@24
+      buildCommands:
+        - npm ci
+        - npm run build
+        - cp -r .next/static  .next/standalone/.next/static
+        - cp -r public        .next/standalone/public
+      deployFiles:
+        - .next/standalone/~
+      cache:
+        - ~/.npm
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 3000
+          path: /
+    run:
+      base: ubuntu/nodejs@24
+      ports:
+        - port: 3000
+          httpSupport: true
+      envVariables:
+        NODE_ENV: production
+        PORT: "3000"
+        NEXT_TELEMETRY_DISABLED: "1"
+        DIRECTUS_URL: ${DEV_API_URL}
+        DIRECTUS_TOKEN: ${ADMIN_TOKEN}
+      start: HOSTNAME=0.0.0.0 node server.js
+      healthCheck:
+        httpGet:
+          port: 3000
+          path: /

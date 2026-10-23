@@ -1,0 +1,53 @@
+{
+  "name": "directus-next-frontend",
+  "version": "1.0.0",
+  "description": "Next.js 16 standalone blog frontend for the directus-next Zerops recipe (Directus REST API, no local database).",
+  "author": "Zerops",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zerops-recipe-apps/directus-next-frontend.git"
+  },
+  "homepage": "https://app.zerops.io/recipes/directus-next",
+  "bugs": {
+    "url": "https://github.com/zerops-recipe-apps/directus-next/issues"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "keywords": [
+    "nextjs",
+    "react",
+    "directus",
+    "zerops",
+    "nodejs",
+    "standalone",
+    "blog"
+  ],
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prepare-standalone": "cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public"
+  },
+  "dependencies": {
+    "lucide-react": "1.60.0",
+    "next": "16.4.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@tailwindcss/typography": "0.5.20",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.2.3",
+    "postcss": "8.5.31",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  }
+}
